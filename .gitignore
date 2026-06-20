@@ -3,6 +3,10 @@
 .idea/
 .venv/
 __pycache__/
+kindle/.DS_Store
+kindle/dist/
+kindle/kindle
+kindle/dashboard-kindle
 
 config.json
 connection.json

@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "name": "Kindle Dashboard",
+      "priority": 1,
+      "items": [
+        {
+          "name": "Start Dashboard",
+          "priority": 1,
+          "action": "bin/start.sh",
+          "exitmenu": true
+        },
+        {
+          "name": "Stop Dashboard",
+          "priority": 2,
+          "action": "bin/stop.sh",
+          "exitmenu": true
+        }
+      ]
+    }
+  ]
+}

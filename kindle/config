@@ -1,6 +1,9 @@
 # Seconds to keep each page on screen before auto-advancing.
 display_seconds=30
 
+# Directory containing dashboard images named db_*.png.
+image_dir=.
+
 # Touch device to grab for page turning.
 input_device=/dev/input/event1
 

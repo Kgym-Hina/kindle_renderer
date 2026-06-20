@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 const (
 	defaultDisplaySeconds = 30
 	defaultConfigPath     = "config"
+	defaultImageDir       = "."
 	defaultInputDevice    = "/dev/input/event1"
 	defaultTouchWidth     = 599
 	defaultTouchHeight    = 799
@@ -33,6 +35,7 @@ const (
 
 type config struct {
 	DisplaySeconds int
+	ImageDir       string
 	InputDevice    string
 	TouchWidth     int
 	TouchHeight    int
@@ -42,8 +45,10 @@ type app struct {
 	cfg          config
 	images       []string
 	index        int
+	imageDir     string
 	currentHash  string
 	lastRendered string
+	showingNoPic bool
 	quitting     bool
 	mu           sync.Mutex
 }
@@ -58,28 +63,38 @@ type touchEvent struct {
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
+	configPath := envOrDefault("KINDLE_DASHBOARD_CONFIG", defaultConfigPath)
+	baseDir := envOrDefault("KINDLE_DASHBOARD_BASE", ".")
+
 	cfg := defaultConfig()
-	if err := loadConfig(defaultConfigPath, &cfg); err != nil {
+	if err := loadConfig(configPath, &cfg); err != nil {
 		log.Printf("load config: %v", err)
 	}
 
-	images, err := discoverImages(".")
+	imageDir := resolvePath(baseDir, cfg.ImageDir)
+	log.Printf("using config=%s image_dir=%s", configPath, imageDir)
+
+	images, err := discoverImages(imageDir)
 	if err != nil {
 		log.Fatalf("discover images: %v", err)
 	}
-	if len(images) == 0 {
-		log.Fatal("no db_*.png files found in current directory")
-	}
 
 	a := &app{
-		cfg:    cfg,
-		images: images,
+		cfg:      cfg,
+		images:   images,
+		imageDir: imageDir,
 	}
 
 	if err := runCommand("stop", "framework"); err != nil {
 		log.Printf("stop framework: %v", err)
 	}
+	if err := runCommand("lipc-set-prop", "com.lab126.powerd", "preventScreenSaver", "1"); err != nil {
+		log.Printf("disable screensaver: %v", err)
+	}
 	defer func() {
+		if err := runCommand("lipc-set-prop", "com.lab126.powerd", "preventScreenSaver", "0"); err != nil {
+			log.Printf("enable screensaver: %v", err)
+		}
 		if a.isQuitting() {
 			return
 		}
@@ -94,6 +109,10 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	signalCh := make(chan os.Signal, 2)
+	signal.Notify(signalCh, syscall.SIGTERM, syscall.SIGINT)
+	defer signal.Stop(signalCh)
 
 	touchCh := make(chan touchEvent, 8)
 	errCh := make(chan error, 1)
@@ -146,6 +165,12 @@ func main() {
 				log.Printf("touch next image: %v", err)
 			}
 			ticker.Reset(time.Duration(cfg.DisplaySeconds) * time.Second)
+		case sig := <-signalCh:
+			log.Printf("received signal: %s", sig)
+			if err := a.quit(); err != nil {
+				log.Printf("signal quit failed: %v", err)
+			}
+			return
 		case err := <-errCh:
 			if err != nil && !errors.Is(err, context.Canceled) {
 				log.Fatalf("touch reader failed: %v", err)
@@ -158,6 +183,7 @@ func main() {
 func defaultConfig() config {
 	return config{
 		DisplaySeconds: defaultDisplaySeconds,
+		ImageDir:       defaultImageDir,
 		InputDevice:    defaultInputDevice,
 		TouchWidth:     defaultTouchWidth,
 		TouchHeight:    defaultTouchHeight,
@@ -198,6 +224,11 @@ func loadConfig(path string, cfg *config) error {
 				return fmt.Errorf("config line %d: invalid display_seconds", lineNumber)
 			}
 			cfg.DisplaySeconds = v
+		case "image_dir":
+			if value == "" {
+				return fmt.Errorf("config line %d: image_dir is empty", lineNumber)
+			}
+			cfg.ImageDir = value
 		case "input_device":
 			if value == "" {
 				return fmt.Errorf("config line %d: input_device is empty", lineNumber)
@@ -235,7 +266,22 @@ func discoverImages(dir string) ([]string, error) {
 
 func (a *app) showCurrent(force bool) error {
 	a.mu.Lock()
+	if len(a.images) == 0 {
+		shouldRender := force || !a.showingNoPic
+		if shouldRender {
+			a.showingNoPic = true
+			a.lastRendered = ""
+			a.currentHash = ""
+		}
+		a.mu.Unlock()
+		if !shouldRender {
+			return nil
+		}
+		return runCommand("fbink", "-q", "-c", "-f", "-m", "No Pic")
+	}
+
 	image := a.images[a.index]
+	a.showingNoPic = false
 	a.mu.Unlock()
 
 	hash, err := fileHash(image)
@@ -264,6 +310,10 @@ func (a *app) nextImage() error {
 	}
 
 	a.mu.Lock()
+	if len(a.images) == 0 {
+		a.mu.Unlock()
+		return a.showCurrent(false)
+	}
 	a.index = (a.index + 1) % len(a.images)
 	a.mu.Unlock()
 	return a.showCurrent(true)
@@ -286,16 +336,25 @@ func (a *app) onTick() error {
 }
 
 func (a *app) refreshImages() error {
-	images, err := discoverImages(".")
+	images, err := discoverImages(a.imageDir)
 	if err != nil {
 		return err
-	}
-	if len(images) == 0 {
-		return errors.New("no db_*.png files found in current directory")
 	}
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
+	if len(images) == 0 {
+		a.images = nil
+		a.index = 0
+		return nil
+	}
+
+	if len(a.images) == 0 {
+		a.images = images
+		a.index = 0
+		return nil
+	}
 
 	currentImage := a.images[a.index]
 	a.images = images
@@ -343,6 +402,20 @@ func runCommand(name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func envOrDefault(key, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+		return value
+	}
+	return fallback
+}
+
+func resolvePath(baseDir, target string) string {
+	if filepath.IsAbs(target) {
+		return target
+	}
+	return filepath.Join(baseDir, target)
 }
 
 func readTouchEvents(ctx context.Context, devicePath string, maxX, maxY int, out chan<- touchEvent) error {
