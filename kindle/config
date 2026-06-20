@@ -1,0 +1,9 @@
+# Seconds to keep each page on screen before auto-advancing.
+display_seconds=30
+
+# Touch device to grab for page turning.
+input_device=/dev/input/event1
+
+# Raw touch coordinate limits reported by the Kindle device.
+touch_width=599
+touch_height=799
