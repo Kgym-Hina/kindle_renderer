@@ -1,5 +1,7 @@
 # Kindle Renderer
 
+[中文说明](README.zh-CN.md)
+
 Generate black-and-white dashboard images for Kindle-style screens.
 
 ## Features
@@ -18,6 +20,7 @@ Generate black-and-white dashboard images for Kindle-style screens.
 - `update_data.py`: generates `data.json`
 - `prepare_team_logos.py`: downloads local team logos for ranked teams
 - `sync_kindle_images.py`: syncs rendered `db_*.png` images to a remote host and runs a refresh command
+- `kindle/`: Kindle-side Go app, KUAL extension files, and release packaging script
 - `config.json`: local private config, ignored by git
 - `config.json.template`: config template to copy from
 - `connection.json`: remote sync config, ignored by git
@@ -77,6 +80,38 @@ Behavior:
 - Overwrites remote files with the same name
 - Deletes remote `db_*.png` files that do not exist locally anymore
 - Executes `refresh_command` over SSH after upload
+
+## Kindle Extension
+
+The `kindle/` directory contains the Kindle-side app and KUAL packaging files.
+
+Build the release package locally:
+
+```bash
+cd kindle
+./build_kual_package.sh
+```
+
+This produces:
+
+- `kindle/dist/kindle-dashboard.zip`
+
+Extract the zip so the Kindle contains:
+
+```text
+/mnt/us/extensions/kindle-dashboard/config.xml
+/mnt/us/extensions/kindle-dashboard/menu.json
+/mnt/us/extensions/kindle-dashboard/bin/start.sh
+/mnt/us/extensions/kindle-dashboard/bin/stop.sh
+/mnt/us/extensions/kindle-dashboard/bin/dashboard-kindle
+/mnt/us/extensions/kindle-dashboard/config
+```
+
+The extension provides KUAL menu entries to start and stop the dashboard app.
+
+## Releases
+
+GitHub Actions automatically builds a KUAL package and creates a GitHub Release when a tag is pushed.
 
 ## Team Logos
 
