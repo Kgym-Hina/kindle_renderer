@@ -1,0 +1,48 @@
+{
+  "title": "My Dashboard",
+  "match_source": "csapi",
+  "teams": [
+    "Falcons"
+  ],
+  "max_matches": 3,
+  "api_fetch_limit": 40,
+  "timezone_offset_hours": 8,
+  "fallback_match_title": "Major Match",
+  "team_logos": {
+    "Spirit": "matches/cs/teams/spirit.png",
+    "Falcons": "matches/cs/teams/falcons.png",
+    "Vitality": "matches/cs/teams/vitality.png",
+    "G2": "matches/cs/teams/g2.png"
+  },
+  "matches": [
+    {
+      "title": "Major Match",
+      "home": "Vitality",
+      "away": "Spirit",
+      "home_logo": "matches/cs/teams/vitality.png",
+      "away_logo": "matches/cs/teams/spirit.png",
+      "score": "19:30",
+      "subtitle": "BLAST Austin Major 2026",
+      "match_type": "BO3",
+      "meta": "Group Stage",
+      "use_mono": true
+    }
+  ],
+  "servers": [
+    {
+      "title": "Mac Mini Server",
+      "host": "your-host.example.com",
+      "port": 22,
+      "user": "your-user",
+      "key_path": "~/.ssh/id_ed25519"
+    },
+    {
+      "title": "Aliyun Server",
+      "host": "203.0.113.10",
+      "port": 22,
+      "user": "root",
+      "key_path": "~/.ssh/id_ed25519"
+    }
+  ],
+  "static_modules": []
+}

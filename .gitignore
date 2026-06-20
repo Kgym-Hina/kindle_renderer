@@ -1,0 +1,10 @@
+.DS_Store
+.cache/
+.idea/
+.venv/
+__pycache__/
+
+config.json
+data.json
+db_*.png
+dashboard.png

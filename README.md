@@ -1,0 +1,84 @@
+# Kindle Renderer
+
+Generate black-and-white dashboard images for Kindle-style screens.
+
+## Features
+
+- Renders dashboard pages as `db_1.png`, `db_2.png`, ...
+- Shows the latest match for a followed CS team via `https://api.csapi.de`
+- Reads team logos from local files under `matches/cs/teams/`
+- Collects server status over SSH:
+  - `CPU`
+  - `RAM`
+  - `Uptime`
+
+## Files
+
+- `main.py`: renders `data.json` into page images
+- `update_data.py`: generates `data.json`
+- `prepare_team_logos.py`: downloads local team logos for ranked teams
+- `config.json`: local private config, ignored by git
+- `config.json.template`: config template to copy from
+
+## Setup
+
+1. Create your local config:
+
+```bash
+cp config.json.template config.json
+```
+
+2. Edit `config.json`:
+
+- Set `teams` to the CS teams you follow
+- Set `servers` with real SSH host/user/key settings
+- Adjust title, timezone, and local logo paths as needed
+
+3. Prepare team logos:
+
+```bash
+python3 prepare_team_logos.py
+```
+
+4. Generate data and render images:
+
+```bash
+python3 update_data.py
+python3 main.py data.json dashboard.png
+```
+
+## Team Logos
+
+Logos are loaded only from local files.
+
+Expected path pattern:
+
+```text
+matches/cs/teams/<team-slug>.png
+```
+
+Examples:
+
+- `matches/cs/teams/falcons.png`
+- `matches/cs/teams/vitality.png`
+- `matches/cs/teams/spirit.png`
+
+If a logo is missing, the renderer prints a warning and falls back to a placeholder.
+
+## Server Status
+
+Each server entry in `config.json` should include:
+
+```json
+{
+  "title": "My Server",
+  "host": "your-host.example.com",
+  "port": 22,
+  "user": "root",
+  "key_path": "~/.ssh/id_ed25519"
+}
+```
+
+The generator uses the local `ssh` binary and your specified private key.
+
+If SSH collection fails, the status card still renders with fallback values.
