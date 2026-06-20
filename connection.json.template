@@ -1,0 +1,9 @@
+{
+  "host": "203.0.113.10",
+  "port": 22,
+  "user": "root",
+  "key_path": "~/.ssh/id_ed25519",
+  "remote_dir": "/path/to/remote/dashboard",
+  "refresh_command": "cd /path/to/remote/dashboard && ./refresh.sh",
+  "local_glob": "db_*.png"
+}

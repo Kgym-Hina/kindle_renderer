@@ -17,8 +17,11 @@ Generate black-and-white dashboard images for Kindle-style screens.
 - `main.py`: renders `data.json` into page images
 - `update_data.py`: generates `data.json`
 - `prepare_team_logos.py`: downloads local team logos for ranked teams
+- `sync_kindle_images.py`: syncs rendered `db_*.png` images to a remote host and runs a refresh command
 - `config.json`: local private config, ignored by git
 - `config.json.template`: config template to copy from
+- `connection.json`: remote sync config, ignored by git
+- `connection.json.template`: remote sync config template
 
 ## Setup
 
@@ -46,6 +49,34 @@ python3 prepare_team_logos.py
 python3 update_data.py
 python3 main.py data.json dashboard.png
 ```
+
+5. Sync rendered images to the remote device and trigger refresh:
+
+```bash
+cp connection.json.template connection.json
+python3 sync_kindle_images.py
+```
+
+`connection.json` fields:
+
+```json
+{
+  "host": "203.0.113.10",
+  "port": 22,
+  "user": "root",
+  "key_path": "~/.ssh/id_ed25519",
+  "remote_dir": "/path/to/remote/dashboard",
+  "refresh_command": "cd /path/to/remote/dashboard && ./refresh.sh",
+  "local_glob": "db_*.png"
+}
+```
+
+Behavior:
+
+- Uploads all local files matching `local_glob` to `remote_dir`
+- Overwrites remote files with the same name
+- Deletes remote `db_*.png` files that do not exist locally anymore
+- Executes `refresh_command` over SSH after upload
 
 ## Team Logos
 

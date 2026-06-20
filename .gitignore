@@ -5,6 +5,7 @@
 __pycache__/
 
 config.json
+connection.json
 data.json
 db_*.png
 dashboard.png
