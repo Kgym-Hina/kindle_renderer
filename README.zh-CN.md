@@ -26,6 +26,7 @@
 - `update_data.py`：生成 `data.json`
 - `prepare_team_logos.py`：下载或准备本地队伍 logo
 - `sync_kindle_images.py`：把 `db_*.png` 上传到远端并执行刷新命令
+- `run_full_sync.py`：一条命令串联生成数据、渲染图片和上传同步
 - `kindle/`：Kindle 端 Go 程序、KUAL 扩展文件和打包脚本
 - `config.json`：本地私有配置，不会提交到 git
 - `config.json.template`：本地配置模板
@@ -109,6 +110,20 @@ python3 sync_kindle_images.py
 - 用本地同名文件覆盖远端已有文件
 - 删除远端这次本地不存在的旧 `db_*.png`
 - 上传结束后执行 `refresh_command`
+
+## 一键执行完整流程
+
+如果你想把“生成数据 + 渲染图片 + 上传同步”三步连起来，可以直接运行：
+
+```bash
+python3 run_full_sync.py
+```
+
+也支持显式传参：
+
+```bash
+python3 run_full_sync.py config.json data.json dashboard.png connection.json
+```
 
 ## Kindle 端扩展
 

@@ -20,6 +20,7 @@ Generate black-and-white dashboard images for Kindle-style screens.
 - `update_data.py`: generates `data.json`
 - `prepare_team_logos.py`: downloads local team logos for ranked teams
 - `sync_kindle_images.py`: syncs rendered `db_*.png` images to a remote host and runs a refresh command
+- `run_full_sync.py`: runs data generation, image rendering, and remote sync in one command
 - `kindle/`: Kindle-side Go app, KUAL extension files, and release packaging script
 - `config.json`: local private config, ignored by git
 - `config.json.template`: config template to copy from
@@ -80,6 +81,18 @@ Behavior:
 - Overwrites remote files with the same name
 - Deletes remote `db_*.png` files that do not exist locally anymore
 - Executes `refresh_command` over SSH after upload
+
+6. Run the full pipeline in one command:
+
+```bash
+python3 run_full_sync.py
+```
+
+Optional arguments:
+
+```bash
+python3 run_full_sync.py config.json data.json dashboard.png connection.json
+```
 
 ## Kindle Extension
 

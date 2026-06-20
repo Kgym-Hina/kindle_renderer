@@ -33,6 +33,14 @@ const (
 	quitZoneY             = 140
 )
 
+var commandCandidates = map[string][]string{
+	"fbink":         {"/usr/bin/fbink", "/usr/sbin/fbink"},
+	"eips":          {"/usr/bin/eips"},
+	"stop":          {"/usr/sbin/stop", "/sbin/stop"},
+	"start":         {"/usr/sbin/start", "/sbin/start"},
+	"lipc-set-prop": {"/usr/bin/lipc-set-prop"},
+}
+
 type config struct {
 	DisplaySeconds int
 	ImageDir       string
@@ -103,9 +111,12 @@ func main() {
 		}
 	}()
 
+	log.Printf("initial images found: %d", len(a.images))
+	log.Printf("about to render initial screen")
 	if err := a.showCurrent(true); err != nil {
 		log.Fatalf("initial display failed: %v", err)
 	}
+	log.Printf("initial screen rendered")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -398,10 +409,31 @@ func inQuitZone(x, y int) bool {
 }
 
 func runCommand(name string, args ...string) error {
-	cmd := exec.Command(name, args...)
+	resolved, err := resolveCommand(name)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(resolved, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func resolveCommand(name string) (string, error) {
+	if strings.Contains(name, "/") {
+		return name, nil
+	}
+	if path, err := exec.LookPath(name); err == nil {
+		return path, nil
+	}
+	if candidates, ok := commandCandidates[name]; ok {
+		for _, candidate := range candidates {
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("command not found: %s", name)
 }
 
 func envOrDefault(key, fallback string) string {
